@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -19,7 +20,7 @@ func (db *DB) MigrateDB(down bool, targetVersion int) error {
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://internal/database/migrations",
+		"file://"+os.Getenv("MIGRATIONS_PATH"),
 		"postgres", driver)
 	if err != nil {
 		return fmt.Errorf("migration failed: %v", err)
