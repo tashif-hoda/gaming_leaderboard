@@ -47,7 +47,7 @@ func (h *Handler) SubmitScore(c *gin.Context) {
 		return
 	}
 	if !userExists {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"error": "User ID does not exist",
 		})
 		return
