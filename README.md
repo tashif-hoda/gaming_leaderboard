@@ -21,7 +21,7 @@ A high-performance gaming leaderboard system built with Go, featuring real-time 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/gaming-leaderboard.git
+git clone https://github.com/tashif-hoda/gaming-leaderboard.git
 cd gaming-leaderboard
 ```
 
