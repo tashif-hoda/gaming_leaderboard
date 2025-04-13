@@ -118,6 +118,50 @@ go run cmd/server/main.go
 
 The server will start on http://localhost:8080 by default.
 
+## Docker Support
+
+### Building the Image
+```bash
+docker build -t gaming-leaderboard .
+```
+
+### Running with Docker
+1. First, start a PostgreSQL instance (if you don't have one):
+```bash
+docker run --name postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=leaderboard -p 5432:5432 -d postgres:12
+```
+
+2. Run the application:
+```bash
+docker run -p 8080:8080 \
+  -e DB_HOST=host.docker.internal \
+  -e DB_USER=postgres \
+  -e DB_PASSWORD=postgres \
+  -e DB_NAME=leaderboard \
+  gaming-leaderboard
+```
+
+### Docker Compose (Alternative)
+A docker-compose.yml file is provided for easy deployment. To run the application with Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+This will start both the application and PostgreSQL database in detached mode. The services will be available at:
+- Application: http://localhost:8080
+- PostgreSQL: localhost:5432
+
+To stop the services:
+```bash
+docker-compose down
+```
+
+To stop the services and remove the persistent volume:
+```bash
+docker-compose down -v
+```
+
 ## License
 
 MIT License
