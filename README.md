@@ -39,6 +39,7 @@ export DB_NAME=leaderboard
 export PORT=8080
 export GIN_MODE=debug
 export MIGRATIONS_PATH=internal/database/migrations
+export API_SECRET_KEY=top-secret-api-key
 ```
 
 4. Run database migrations:
@@ -152,6 +153,7 @@ docker run -p 8080:8080 \
   -e DB_USER=postgres \
   -e DB_PASSWORD=postgres \
   -e DB_NAME=leaderboard \
+  -e API_SECRET_KEY=top-secret-api-key \
   gaming-leaderboard
 ```
 
