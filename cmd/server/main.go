@@ -13,10 +13,19 @@ import (
 	"github.com/gaming-leaderboard/internal/database"
 	"github.com/gaming-leaderboard/internal/handlers"
 	"github.com/gin-gonic/gin"
+	nrgin "github.com/newrelic/go-agent/v3/integrations/nrgin"
+	"github.com/newrelic/go-agent/v3/newrelic"
 )
 
 func setupRouter(handler *handlers.Handler) *gin.Engine {
 	router := gin.Default()
+
+	app, err := setupNewRelic()
+	if err != nil {
+		log.Fatalf("Failed to set up New Relic: %v", err)
+	}
+	// New Relic middleware
+	router.Use(nrgin.Middleware(app))
 
 	// Add CORS middleware
 	router.Use(func(c *gin.Context) {
@@ -31,6 +40,9 @@ func setupRouter(handler *handlers.Handler) *gin.Engine {
 
 		c.Next()
 	})
+
+	// Serve static files
+	router.Static("/leaderboard", "./static")
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -49,6 +61,15 @@ func setupRouter(handler *handlers.Handler) *gin.Engine {
 	}
 
 	return router
+}
+
+func setupNewRelic() (*newrelic.Application, error) {
+	app, err := newrelic.NewApplication(
+		newrelic.ConfigAppName("gaming-leaderboard"),
+		newrelic.ConfigLicense(os.Getenv("NEW_RELIC_LICENSE_KEY")),
+		newrelic.ConfigAppLogForwardingEnabled(true),
+	)
+	return app, err
 }
 
 func startBackgroundWorker(db *database.DB, interval time.Duration, quit chan struct{}) {

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaming Leaderboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Gaming Leaderboard</h1>
+        
+        <div class="leaderboard-section">
+            <h2>Top 10 Players</h2>
+            <div class="leaderboard-table">
+                <table id="leaderboard">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Username</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <h2>Player Rank Lookup</h2>
+            <div class="search-box">
+                <input type="number" id="player-id" placeholder="Enter Player ID">
+                <button onclick="lookupPlayer()">Search</button>
+            </div>
+            <div id="player-result" class="player-result">
+                <!-- Player search results will appear here -->
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
