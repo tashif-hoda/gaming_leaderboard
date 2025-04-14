@@ -41,11 +41,13 @@ def submit_score(user_id):
         'X-Signature': signature
     }
     
-    requests.post(
+    res = requests.post(
         f"{API_BASE_URL}/submit",
         headers=headers,
         json={"user_id": user_id, "score": score}
     )
+    res.raise_for_status()
+    print("successful post: ", res.json())
 
 # Fetch top players
 def get_top_players():

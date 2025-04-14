@@ -38,22 +38,6 @@ func (h *Handler) SubmitScore(c *gin.Context) {
 		return
 	}
 
-	// Validate if user_id exists in the database
-	userExists, err := h.db.UserExists(submission.UserID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Failed to check user existence",
-			"details": err.Error(),
-		})
-		return
-	}
-	if !userExists {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "User ID does not exist",
-		})
-		return
-	}
-
 	session := models.GameSession{
 		UserID:   submission.UserID,
 		Score:    submission.Score,
@@ -61,6 +45,12 @@ func (h *Handler) SubmitScore(c *gin.Context) {
 	}
 
 	if err := h.db.SubmitScore(session); err != nil {
+		if err.Error() == "user does not exist" {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error":   "Failed to submit score",
+				"details": err.Error(),
+			})
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error":   "Failed to submit score",
 			"details": err.Error(),

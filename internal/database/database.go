@@ -77,6 +77,15 @@ func (db *DB) SubmitScore(session models.GameSession) error {
 	}
 	defer tx.Rollback()
 
+	// check if user exists in the same transaction as update for atomicity.
+	var exists bool
+	err = db.Get(&exists, `
+		SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`,
+		session.UserID)
+	if err != nil {
+		return fmt.Errorf("user does not exist")
+	}
+
 	// Insert into game_sessions
 	_, err = tx.NamedExec(`
 		INSERT INTO game_sessions (user_id, score, game_mode)
@@ -164,10 +173,4 @@ func (db *DB) GetPlayerRank(userID int64) (*models.Leaderboard, error) {
 		return nil, err
 	}
 	return &leaderboard, nil
-}
-
-// Periodic refresh function for background updates
-func (db *DB) RefreshLeaderboard() error {
-	_, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard`)
-	return err
 }
