@@ -91,23 +91,6 @@ func setupNewRelic() (*newrelic.Application, error) {
 	return app, err
 }
 
-func startBackgroundWorker(db *database.DB, interval time.Duration, quit chan struct{}) {
-	ticker := time.NewTicker(interval)
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				if err := db.RefreshLeaderboard(); err != nil {
-					log.Printf("Error refreshing leaderboard: %v", err)
-				}
-			case <-quit:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
-}
-
 func cleanUpNonces(m *middleware.SecurityMiddleware) {
 	for {
 		m.CleanupNonces()
@@ -172,7 +155,6 @@ func main() {
 
 	// Start background worker for leaderboard updates
 	workerQuit := make(chan struct{})
-	startBackgroundWorker(db, 1*time.Minute, workerQuit)
 
 	// Initialize handler and router
 	handler := handlers.NewHandler(db)
