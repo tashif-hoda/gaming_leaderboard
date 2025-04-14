@@ -33,7 +33,7 @@ type ScoreSubmission struct {
 }
 
 type LeaderboardCache struct {
-	mu         sync.RWMutex
-	topPlayers []Leaderboard
-	expiresAt  time.Time
+	Mu         sync.RWMutex
+	TopPlayers []Leaderboard
+	ExpiresAt  time.Time
 }

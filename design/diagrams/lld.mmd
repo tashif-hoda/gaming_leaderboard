@@ -1,0 +1,47 @@
+graph TB
+    subgraph "Client Layer"
+        direction LR
+        subgraph "Frontend Components"
+            APP[app.js\nAPI calls\nHMAC Auth]
+            HTML[index.html\nUI Components\nEvent handlers]
+            CSS[styles.css\nStyling rules]
+        end
+    end
+
+    subgraph "Server Layer"
+        direction LR
+        subgraph "API & Middleware"
+            ROUTES["API Routes\n/submit\n/top\n/rank/:id"]
+            MW["Middleware\nRate Limiting\nSecurity (HMAC)\nCORS"]
+            HAND["Handlers\nSubmitScore\nGetLeaderboard\nGetPlayerRank"]
+        end
+    end
+
+    subgraph "Database Layer"
+        direction LR
+        subgraph "Database Components"
+            TABLES["Tables\nusers\ngame_sessions\nleaderboard"]
+            IDX["Indexes\nidx_leaderboard\nidx_game_sessions\nidx_user_score"]
+            CONST["Constraints\nForeign Keys\nScore Range\nUnique Users"]
+        end
+    end
+
+    APP --> ROUTES
+    HTML --> APP
+    CSS --> HTML
+    
+    ROUTES --> MW
+    MW --> HAND
+    HAND --> TABLES
+    TABLES --> IDX
+    TABLES --> CONST
+
+    style APP fill:#f9f,stroke:#333,stroke-width:2px
+    style HTML fill:#f9f,stroke:#333,stroke-width:2px
+    style CSS fill:#f9f,stroke:#333,stroke-width:2px
+    style ROUTES fill:#bbf,stroke:#333,stroke-width:2px
+    style MW fill:#bbf,stroke:#333,stroke-width:2px
+    style HAND fill:#bbf,stroke:#333,stroke-width:2px
+    style TABLES fill:#bfb,stroke:#333,stroke-width:2px
+    style IDX fill:#bfb,stroke:#333,stroke-width:2px
+    style CONST fill:#bfb,stroke:#333,stroke-width:2px

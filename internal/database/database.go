@@ -12,6 +12,7 @@ import (
 
 type DB struct {
 	*sqlx.DB
+	cache models.LeaderboardCache
 }
 
 func NewDB(host, user, password, dbname string, port int) (*DB, error) {
@@ -23,7 +24,7 @@ func NewDB(host, user, password, dbname string, port int) (*DB, error) {
 		return nil, err
 	}
 
-	return &DB{db}, nil
+	return &DB{db, models.LeaderboardCache{}}, nil
 }
 
 func (db *DB) UserExists(userID int64) (bool, error) {
@@ -113,6 +114,12 @@ func (db *DB) GetTopPlayers(limit int) ([]models.Leaderboard, error) {
 			limit)
 		return leaderboard, err
 	*/
+	db.cache.Mu.RLock()
+	if time.Now().Before(db.cache.ExpiresAt) {
+		defer db.cache.Mu.RUnlock()
+		return db.cache.TopPlayers, nil
+	}
+	db.cache.Mu.RUnlock()
 	var leaderboard []models.Leaderboard
 	err := db.Select(&leaderboard, `
         SELECT u.username, l.total_score, 
@@ -121,6 +128,12 @@ func (db *DB) GetTopPlayers(limit int) ([]models.Leaderboard, error) {
 		JOIN users u ON l.user_id = u.id
 		ORDER BY l.total_score DESC
 		LIMIT 10`)
+
+	// Update cache with write lock
+	db.cache.Mu.Lock()
+	db.cache.TopPlayers = leaderboard
+	db.cache.ExpiresAt = time.Now().Add(5 * time.Second)
+	db.cache.Mu.Unlock()
 	return leaderboard, err
 }
 

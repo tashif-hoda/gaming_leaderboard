@@ -1,0 +1,22 @@
+graph TD
+    subgraph Client
+        WC[Web Client]
+    end
+
+    subgraph Server
+        GS[Go Server\nGin + API]
+        SM[Security\nMiddleware]
+    end
+
+    subgraph Database
+        PG[PostgreSQL\nDatabase]
+    end
+
+    WC -->|HTTP/HTTPS| GS
+    GS --> SM
+    GS -->|SQL| PG
+
+    style WC fill:#f9f,stroke:#333,stroke-width:2px
+    style GS fill:#bbf,stroke:#333,stroke-width:2px
+    style SM fill:#ddf,stroke:#333,stroke-width:2px
+    style PG fill:#bfb,stroke:#333,stroke-width:2px
