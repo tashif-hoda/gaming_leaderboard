@@ -51,6 +51,23 @@ func setupRouter(handler *handlers.Handler) *gin.Engine {
 	return router
 }
 
+func startBackgroundWorker(db *database.DB, interval time.Duration, quit chan struct{}) {
+	ticker := time.NewTicker(interval)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				if err := db.RefreshLeaderboard(); err != nil {
+					log.Printf("Error refreshing leaderboard: %v", err)
+				}
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+}
+
 func main() {
 	// Parse command line flags
 	migrateDown := flag.Bool("down", false, "Run down migrations instead of up migrations")
@@ -106,6 +123,10 @@ func main() {
 	}
 	log.Println("Database migrations completed successfully")
 
+	// Start background worker for leaderboard updates
+	workerQuit := make(chan struct{})
+	startBackgroundWorker(db, 1*time.Minute, workerQuit)
+
 	// Initialize handler and router
 	handler := handlers.NewHandler(db)
 	router := setupRouter(handler)
@@ -133,6 +154,9 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutting down server...")
+
+	// Stop the background worker
+	close(workerQuit)
 
 	// Give outstanding operations up to 5 seconds to complete
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

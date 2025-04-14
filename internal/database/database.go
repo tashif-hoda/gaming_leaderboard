@@ -51,35 +51,10 @@ func (db *DB) SubmitScore(session models.GameSession) error {
 		return err
 	}
 
-	// Update or insert leaderboard entry
+	// Update materialized view concurrently
 	_, err = tx.Exec(`
-        INSERT INTO leaderboard (user_id, total_score, rank)
-        SELECT user_id, SUM(score) as total_score, 0
-        FROM game_sessions
-        WHERE user_id = $1
-        GROUP BY user_id
-        ON CONFLICT (user_id) DO UPDATE
-        SET total_score = (
-            SELECT SUM(score)
-            FROM game_sessions
-            WHERE user_id = $1
-        )`,
-		session.UserID)
-	if err != nil {
-		return err
-	}
-
-	// Update ranks for all players
-	_, err = tx.Exec(`
-        WITH ranked_scores AS (
-            SELECT id, user_id, total_score,
-                   ROW_NUMBER() OVER (ORDER BY total_score DESC) as new_rank
-            FROM leaderboard
-        )
-        UPDATE leaderboard l
-        SET rank = r.new_rank
-        FROM ranked_scores r
-        WHERE l.id = r.id`)
+        REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard;
+    `)
 	if err != nil {
 		return err
 	}
@@ -90,10 +65,13 @@ func (db *DB) SubmitScore(session models.GameSession) error {
 func (db *DB) GetTopPlayers(limit int) ([]models.Leaderboard, error) {
 	var leaderboard []models.Leaderboard
 	err := db.Select(&leaderboard, `
-        SELECT l.*, u.username
-        FROM leaderboard l
-        JOIN users u ON l.user_id = u.id
-        ORDER BY l.total_score DESC
+        SELECT 
+            user_id,
+            total_score,
+            rank,
+            username
+        FROM mv_leaderboard
+        ORDER BY rank ASC
         LIMIT $1`,
 		limit)
 	return leaderboard, err
@@ -102,13 +80,22 @@ func (db *DB) GetTopPlayers(limit int) ([]models.Leaderboard, error) {
 func (db *DB) GetPlayerRank(userID int64) (*models.Leaderboard, error) {
 	var leaderboard models.Leaderboard
 	err := db.Get(&leaderboard, `
-        SELECT l.*, u.username
-        FROM leaderboard l
-        JOIN users u ON l.user_id = u.id
-        WHERE l.user_id = $1`,
+        SELECT 
+            user_id,
+            total_score,
+            rank,
+            username
+        FROM mv_leaderboard
+        WHERE user_id = $1`,
 		userID)
 	if err != nil {
 		return nil, err
 	}
 	return &leaderboard, nil
+}
+
+// Periodic refresh function for background updates
+func (db *DB) RefreshLeaderboard() error {
+	_, err := db.Exec(`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_leaderboard`)
+	return err
 }
