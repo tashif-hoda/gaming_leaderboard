@@ -4,7 +4,7 @@ CREATE INDEX IF NOT EXISTS idx_game_sessions_user_score ON game_sessions(user_id
 -- Create materialized view for leaderboard
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_leaderboard AS
 SELECT 
-    ROW_NUMBER() OVER (ORDER BY total_scores.total_score DESC) as rank,
+    RANK() OVER (ORDER BY total_scores.total_score DESC) as rank,
     total_scores.user_id,
     total_scores.total_score,
     u.username

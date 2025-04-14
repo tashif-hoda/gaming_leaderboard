@@ -12,6 +12,7 @@ import (
 
 	"github.com/gaming-leaderboard/internal/database"
 	"github.com/gaming-leaderboard/internal/handlers"
+	"github.com/gaming-leaderboard/internal/middleware"
 	"github.com/gin-gonic/gin"
 	nrgin "github.com/newrelic/go-agent/v3/integrations/nrgin"
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -31,7 +32,7 @@ func setupRouter(handler *handlers.Handler) *gin.Engine {
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Timestamp, X-Nonce, X-Signature")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
@@ -49,17 +50,35 @@ func setupRouter(handler *handlers.Handler) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// API routes
+	// Initialize security middleware
+	secretKey := os.Getenv("API_SECRET_KEY")
+	if secretKey == "" {
+		log.Fatal("API_SECRET_KEY environment variable is required")
+	}
+	securityMiddleware := middleware.NewSecurityMiddleware(secretKey)
+
+	// Configure rate limiters for different endpoints
+	submitLimiter := middleware.NewRateLimiter(5, 10, 1*time.Hour)
+	readLimiter := middleware.NewRateLimiter(10, 20, 1*time.Hour)
+
+	// API routes with rate limiting and security
 	api := router.Group("/api")
 	{
 		leaderboard := api.Group("/leaderboard")
 		{
-			leaderboard.POST("/submit", handler.SubmitScore)
-			leaderboard.GET("/top", handler.GetLeaderboard)
-			leaderboard.GET("/rank/:user_id", handler.GetPlayerRank)
+			// Apply stricter rate limit and security for submission endpoint
+			leaderboard.POST("/submit",
+				submitLimiter.Middleware(),
+				securityMiddleware.ValidateRequest(),
+				handler.SubmitScore,
+			)
+
+			// Apply more lenient rate limit for read endpoints
+			leaderboard.GET("/top", readLimiter.Middleware(), handler.GetLeaderboard)
+			leaderboard.GET("/rank/:user_id", readLimiter.Middleware(), handler.GetPlayerRank)
 		}
 	}
-
+	go cleanUpNonces(securityMiddleware)
 	return router
 }
 
@@ -87,6 +106,13 @@ func startBackgroundWorker(db *database.DB, interval time.Duration, quit chan st
 			}
 		}
 	}()
+}
+
+func cleanUpNonces(m *middleware.SecurityMiddleware) {
+	for {
+		m.CleanupNonces()
+		time.Sleep(10 * time.Minute)
+	}
 }
 
 func main() {

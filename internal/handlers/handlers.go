@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"math/rand"
 	"net/http"
 	"strconv"
 
@@ -30,9 +31,9 @@ func (h *Handler) SubmitScore(c *gin.Context) {
 	}
 
 	// Validate score
-	if submission.Score < 0 {
+	if submission.Score < 0 || submission.Score > 50000 {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Score cannot be negative",
+			"error": "Invalid score. Score must be between 0 and 10000.",
 		})
 		return
 	}
@@ -56,7 +57,7 @@ func (h *Handler) SubmitScore(c *gin.Context) {
 	session := models.GameSession{
 		UserID:   submission.UserID,
 		Score:    submission.Score,
-		GameMode: "default",
+		GameMode: []string{"solo", "team"}[rand.Intn(2)],
 	}
 
 	if err := h.db.SubmitScore(session); err != nil {

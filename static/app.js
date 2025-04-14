@@ -2,10 +2,16 @@
 const API_BASE_URL = 'http://localhost:8080/api';
 const REFRESH_INTERVAL = 5000; // 5 seconds
 
+let retryTimeout;
+
 // Function to fetch top players
 async function fetchLeaderboard() {
     try {
         const response = await fetch(`${API_BASE_URL}/leaderboard/top`);
+        if (response.status === 429) {
+            handleRateLimit(response);
+            return;
+        }
         if (!response.ok) throw new Error('Failed to fetch leaderboard');
         
         const data = await response.json();
@@ -25,13 +31,15 @@ async function lookupPlayer() {
 
     try {
         const response = await fetch(`${API_BASE_URL}/leaderboard/rank/${playerId}`);
+        if (response.status === 429) {
+            handleRateLimit(response);
+            return;
+        }
         if (!response.ok) throw new Error('Player not found');
         
         const data = await response.json();
         showPlayerResult(`
-            Player: ${data.username}
             Rank: #${data.rank}
-            Total Score: ${data.total_score}
         `, true);
     } catch (error) {
         showPlayerResult('Player not found or an error occurred', false);
@@ -59,6 +67,23 @@ function showPlayerResult(message, isSuccess) {
     const resultDiv = document.getElementById('player-result');
     resultDiv.textContent = message;
     resultDiv.className = `player-result ${isSuccess ? 'success' : 'error'}`;
+}
+
+// Function to handle rate limit responses
+async function handleRateLimit(response) {
+    const retryAfter = response.headers.get('Retry-After') || 5;
+    const message = `Rate limit exceeded. Please wait ${retryAfter} seconds before trying again.`;
+    showPlayerResult(message, false);
+    
+    // Clear any existing retry timeout
+    if (retryTimeout) {
+        clearTimeout(retryTimeout);
+    }
+    
+    // Set retry timeout
+    retryTimeout = setTimeout(() => {
+        fetchLeaderboard();
+    }, retryAfter * 1000);
 }
 
 // Start periodic updates

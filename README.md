@@ -48,6 +48,20 @@ go run cmd/server/main.go
 
 ## API Documentation
 
+### Rate Limiting
+The API implements rate limiting to ensure fair usage and system stability:
+
+- Score Submission: 5 requests per second with burst of 10
+- Leaderboard/Rank Queries: 10 requests per second with burst of 20
+
+Rate limits are applied per IP address. When exceeded, the API returns:
+```json
+{
+    "error": "Rate limit exceeded. Please try again later."
+}
+```
+with HTTP status code 429 (Too Many Requests).
+
 ### Submit Score
 `POST /api/leaderboard/submit`
 
